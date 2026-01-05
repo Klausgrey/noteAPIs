@@ -45,9 +45,7 @@ export const deleteNotes = (req, res) => {
 	const userId = Number(req.params.id);
 	const index = notes.findIndex((n) => n.id === userId);
 
-	if (index === -1) {
-		return res.status(404).json({ error: "Note not found" });
-	}
+	if (index === -1) return res.status(404).json({ error: "Note not found" });
 
 	notes.splice(index, 1);
 	res.status(204).send();
