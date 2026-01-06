@@ -1,52 +1,76 @@
-const notes = [];
-let noteId = 1;
+import NoteRepository from "../repositories/noteRepository.js";
 
 
-export const createNotes = (req, res) => {
+export async function createNotes(req, res) {
 	const { title, content } = req.body;
 
-	const newNote = {
-		id: noteId++,
-		title,
-		content,
-		createdAt: new Date().toISOString(),
-	};
+	try {
+		const newNote = await NoteRepository.create(title, content);
+		return res.status(201).json(newNote);
+	} catch (error) {
+		res.status(500).json({ message: "Error saving note" });
+	}
 
-	notes.push(newNote);
+}
 
-	res.status(201).json(newNote);
+export async function getNotes(req, res) {
+	try {
+		const getNote = await NoteRepository.getAll();
+		return res.status(200).json(getNote);
+	} catch (error) {
+		res.status(500).json({ message: "Error fetching note" });
+	}
+}
+
+export async function getNotesById(req, res) {
+	const noteId = Number(req.params.id);
+
+	try {
+		const note = await NoteRepository.getById(noteId);
+		if (!note) {
+			return res.status(404).json({ message: "Note not found" });
+		}
+		return res.status(200).json(note);
+	} catch (error) {
+		res.status(500).json({ message: "Error fetching note" });
+	}
+
 };
 
-export const getNotes = (req, res) => {
-	res.json(notes);
-};
-
-export const getNotesById = (req, res) => {
+export async function updateNotes(req, res) {
 	const userId = Number(req.params.id);
-	const note = notes.find((n) => n.id === userId);
-	if (!note) return res.status(404).json({ error: "Note not found" });
-
-	res.json(note);
-};
-
-export const updateNotes = (req, res) => {
-	const userId = Number(req.params.id);
-	const note = notes.find((n) => n.id === userId);
-	if (!note) return res.status(404).json({ error: "Note not found" });
 	const { title, content } = req.body;
 
-	if (title) note.title = title;
-	if (content) note.content = content;
-
-	res.json(note);
+	try {
+		const updated = await NoteRepository.updateById(userId, title, content);
+		if (!updated) {
+			return res.status(404).json({ message: "Note not found" });
+		}
+		return res.status(200).json(updated);
+	} catch (error) {
+		res.status(500).json({ message: "Error updating note" });
+	}
 };
 
-export const deleteNotes = (req, res) => {
+export async function deleteNotes (req, res) {
 	const userId = Number(req.params.id);
-	const index = notes.findIndex((n) => n.id === userId);
 
-	if (index === -1) return res.status(404).json({ error: "Note not found" });
+	try {
+		const deleted = await NoteRepository.deleteById(userId);
+		if (!deleted) {
+			return res.status(404).json({ error: "Note not found" });
+		}
+		return res.status(204).send();
+	} catch (error) {
+		return res.status(500).json({ message: "Error deleting note" });
+	}
 
-	notes.splice(index, 1);
-	res.status(204).send();
+};
+
+export default {
+	createNotes,
+	getNotes,
+	getNotesById,
+	updateNotes,
+	deleteNotes,
 };

@@ -1,10 +1,20 @@
-import "dotenv/config"
-import app from './src/app.js';
+// server.js
+import "dotenv/config";
+import app from "./src/app.js";
+import { initDb } from "./src/db/db.js";
 
-// process.env.PORT reads the value from your .env file
-// We keep 3000 as a "fallback" just in case the .env is missing
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-	console.log(`Server running at http://localhost:${PORT}`);
-});
+async function start() {
+	try {
+		await initDb();
+		app.listen(PORT, () => {
+			console.log(`Server running at http://localhost:${PORT}`);
+		});
+	} catch (err) {
+		console.error("Failed to start server:", err);
+		process.exit(1);
+	}
+}
+
+start();

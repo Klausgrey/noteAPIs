@@ -1,5 +1,11 @@
 import express, { Router } from "express";
-import * as noteController from "../controllers/noteControllers.js";
+import {
+	createNotes,
+	getNotes,
+	getNotesById,
+	updateNotes,
+	deleteNotes,
+} from "../controllers/noteControllers.js";
 import {
 	validatesCreatedNotes,
 	validatesUpdatedNotes,
@@ -7,10 +13,10 @@ import {
 
 const router = express.Router();
 
-router.post("/", validatesCreatedNotes, noteController.createNotes);
-router.get("/", noteController.getNotes);
-router.get("/:id", noteController.getNotesById);
-router.patch("/:id", validatesUpdatedNotes, noteController.updateNotes);
-router.delete("/:id", noteController.deleteNotes);
+router.post("/", validatesCreatedNotes, createNotes);
+router.get("/", getNotes);
+router.get("/:id", getNotesById);
+router.patch("/:id", validatesUpdatedNotes, updateNotes);
+router.delete("/:id", deleteNotes);
 
 export default router;
