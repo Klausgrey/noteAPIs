@@ -1,32 +1,41 @@
 # noteAPIs 🔖
 
-**Simple in-memory Express API for notes**
+**REST API for notes with SQLite persistence**
 
-A modular REST API for creating, reading, updating, and deleting notes. Built with Express (ES modules), organized into routes, controllers, and middleware for clean separation of concerns. Data is stored in memory and does not persist across restarts.
+A modular REST API for creating, reading, updating, and deleting notes. Built with Express (ES modules), organized into routes, controllers, repositories, and middleware for clean separation of concerns. Data persists in SQLite database.
 
 ---
 
 ## Features ✅
 
-- **Modular architecture:** Express app split into `src/routes/`, `src/controllers/`, and `src/middleware/`
-- **Clean separation:** Router layer (`noteRouters.js`) → Controller layer (`noteControllers.js`) → Data store
+- **Modular architecture:** Express app split into `src/routes/`, `src/controllers/`, `src/repositories/`, and `src/middleware/`
+- **Repository pattern:** Data access layer (`noteRepository.js`) separates database logic from controllers
+- **SQLite persistence:** Data persists across server restarts using SQLite database
+- **Global error handling:** Centralized error handling with `asyncHandler` and `errorHandler` middleware
 - **Validation middleware:** `validatesCreatedNotes` and `validatesUpdatedNotes` for request validation
-- **In-memory store:** `notes` array with numeric `noteId` counter
 - **Full CRUD API:** `POST /notes`, `GET /notes`, `GET /notes/:id`, `PATCH /notes/:id`, `DELETE /notes/:id`
+- **Auto database initialization:** Database and table created automatically on first run
 
 ## Project Structure 📁
 
 ```
 noteAPIs/
-├── server.js                           # Entry point (starts the app)
+├── server.js                           # Entry point (initializes DB & starts app)
+├── dev.sqlite3                         # SQLite database file (auto-generated)
 ├── src/
-│   ├── app.js                          # Express app config & route mounting
+│   ├── app.js                          # Express app config, route mounting & error handler
 │   ├── controllers/
 │   │   └── noteControllers.js          # Business logic: createNotes, getNotes, getNotesById, updateNotes, deleteNotes
+│   ├── repositories/
+│   │   └── noteRepository.js           # Data access layer: getAll, create, getById, updateById, deleteById
 │   ├── middleware/
-│   │   └── noteMiddleware.js           # Request validation: validatesCreatedNotes, validatesUpdatedNotes
-│   └── routes/
-│       └── noteRouters.js              # Route definitions (POST/GET/PATCH/DELETE)
+│   │   ├── asyncHandler.js              # Wraps async controllers to catch errors
+│   │   ├── errorHandler.js              # Global error handling middleware
+│   │   └── notemiddleware.js            # Request validation: validatesCreatedNotes, validatesUpdatedNotes
+│   ├── routes/
+│   │   └── noteRouters.js              # Route definitions (POST/GET/PATCH/DELETE)
+│   └── db/
+│       └── db.js                        # Knex database config & initDb function
 ├── package.json                        # Dependencies & scripts
 └── README.md                           # This file
 ```
@@ -35,26 +44,31 @@ noteAPIs/
 
 ## Quickstart ⚡
 
-Prerequisites:
+### Prerequisites
 
 - Node.js (use nvm or Homebrew on macOS)
+- npm
 
-Install & run:
+### Install & Run
 
 ```bash
-# install deps
+# Install dependencies
 npm install
 
-# start server
+# Start server (production)
 npm start
 
-# (recommended for development with auto-reload)
-npm i -D nodemon
-# then add to package.json scripts: "dev": "nodemon server.js"
+# Start server with auto-reload (development)
 npm run dev
 ```
 
-The server listens on port `3000` and logs `Server running at http://localhost:3000`.
+The server listens on port `3000` (or `PORT` from `.env` file) and logs:
+```
+Database & Notes table created!
+Server running at http://localhost:3000
+```
+
+**Note:** The SQLite database (`dev.sqlite3`) and `notes` table are created automatically on first run.
 
 ---
 
@@ -67,9 +81,9 @@ The server listens on port `3000` and logs `Server running at http://localhost:3
 - **Validation:** Both `title` and `content` required
 
 ```bash
-curl -sS -X POST http://localhost:3000/notes \
+curl -X POST http://localhost:3000/notes \
   -H 'Content-Type: application/json' \
-  -d '{"title":"First","content":"Hello"}'
+  -d '{"title":"First Note","content":"Hello World"}'
 ```
 
 ### List all notes
@@ -82,7 +96,7 @@ curl http://localhost:3000/notes
 
 ### Get a single note
 - **GET** `/notes/:id`
-- **Response:** `200 OK` or `404 Not Found` (bad `id` returns `400`)
+- **Response:** `200 OK` with note object or `404 Not Found`
 
 ```bash
 curl http://localhost:3000/notes/1
@@ -91,13 +105,13 @@ curl http://localhost:3000/notes/1
 ### Update a note
 - **PATCH** `/notes/:id`
 - **Body:** `{ "title": "..." }` and/or `{ "content": "..." }` (partial updates accepted)
-- **Response:** `200 OK` with updated note, or `400`/`404` for invalid data/not found
+- **Response:** `200 OK` with updated note, or `404 Not Found`
 - **Validation:** At least one of `title` or `content` required
 
 ```bash
 curl -X PATCH http://localhost:3000/notes/1 \
   -H 'Content-Type: application/json' \
-  -d '{"content":"Updated"}'
+  -d '{"content":"Updated content"}'
 ```
 
 ### Delete a note
@@ -112,38 +126,100 @@ curl -X DELETE http://localhost:3000/notes/1
 
 ## How it works 🔄
 
-1. **Request flow:** Client → `server.js` → `src/app.js` → `src/routes/noteRouters.js`
-2. **Validation:** Middleware (`src/middleware/noteMiddleware.js`) validates request body
-3. **Business logic:** Controller (`src/controllers/noteControllers.js`) handles the operation
-4. **Storage:** In-memory `notes` array (defined in `noteControllers.js`)
-5. **Response:** Controller returns JSON with appropriate status code
+### Request Flow
+1. **Request:** Client → `server.js` → `src/app.js` → `src/routes/noteRouters.js`
+2. **Validation:** Middleware (`src/middleware/notemiddleware.js`) validates request body
+3. **Error handling:** `asyncHandler` wraps async controllers to catch errors
+4. **Business logic:** Controller (`src/controllers/noteControllers.js`) handles the operation
+5. **Data access:** Repository (`src/repositories/noteRepository.js`) interacts with SQLite database
+6. **Response:** Controller returns JSON with appropriate status code
+7. **Error handling:** If error occurs, `errorHandler` middleware sends consistent error response
 
 **Example flow for creating a note:**
 ```
-POST /notes → validatesCreatedNotes (middleware) → createNotes (controller) → notes.push() → res.status(201).json()
+POST /notes
+  → validatesCreatedNotes (middleware)
+  → asyncHandler(createNotes)
+  → createNotes (controller)
+  → NoteRepository.create() (repository)
+  → SQLite database insert
+  → res.status(201).json()
 ```
 
----
-
-## Implementation details 🔍
-
-- **ES modules:** `package.json` has `"type": "module"`, all files use `import`/`export`
-- **Data store:** In-memory `notes` array defined in `src/controllers/noteControllers.js`; `noteId` counter increments on each create
-- **Middleware:** Separate validation functions for POST (both fields) and PATCH (at least one field)
+### Error Handling
+- **Async errors:** Caught by `asyncHandler` wrapper and passed to Express error handler
+- **Global handler:** `errorHandler` middleware (in `app.js`) handles all errors consistently
 - **Status codes:**
-  - `201` — resource created
-  - `204` — resource deleted (no body returned)
-  - `400` — invalid request (missing fields or bad id)
-  - `404` — resource not found
+  - `500` for unexpected errors
+  - `404` for not found (handled in controllers)
+  - `400` for validation errors (handled in middleware)
 
 ---
 
-## Next suggestions 💡
+## Implementation Details 🔍
+
+### Technology Stack
+- **Express 5.x:** Web framework with ES modules
+- **Knex.js:** SQL query builder for SQLite
+- **SQLite3:** Lightweight database for data persistence
+- **dotenv:** Environment variable management
+
+### Architecture Patterns
+- **Repository Pattern:** Data access logic separated from business logic
+- **Middleware Pattern:** Request validation and error handling via Express middleware
+- **Async/Await:** Modern async handling with automatic error catching
+
+### Database Schema
+```sql
+notes
+├── id (INTEGER PRIMARY KEY AUTOINCREMENT)
+├── title (TEXT NOT NULL)
+├── content (TEXT)
+└── createdAt (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+```
+
+### Status Codes
+- `201` — Resource created
+- `200` — Success (GET, PATCH)
+- `204` — Resource deleted (no body returned)
+- `400` — Invalid request (validation errors)
+- `404` — Resource not found
+- `500` — Internal server error
+
+---
+
+## Environment Variables 🔐
+
+Create a `.env` file in the root directory:
+
+```env
+PORT=3000
+NODE_ENV=development
+```
+
+The server defaults to port `3000` if `PORT` is not set.
+
+---
+
+## Next Steps 💡
 
 - Add tests using `supertest` + `vitest` (or `jest`) for route validation
 - Add a GitHub Actions workflow for CI/linting
-- Add a `.env` file for PORT configuration
-- Persist data to a database (e.g., SQLite, MongoDB) to survive restarts
+- Add pagination for `GET /notes` endpoint
+- Add search/filter functionality
+- Add user authentication and authorization
+- Add request rate limiting
+- Add API documentation with Swagger/OpenAPI
 
 ---
 
+## Learning Notes 📚
+
+This project demonstrates:
+- **RESTful API design** with proper HTTP methods and status codes
+- **Separation of concerns** with routes, controllers, repositories, and middleware
+- **Error handling** patterns in Express with async/await
+- **Database integration** with Knex.js and SQLite
+- **ES modules** syntax for modern JavaScript
+
+---
