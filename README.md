@@ -204,7 +204,7 @@ The server defaults to port `3000` if `PORT` is not set.
 ## Next Steps 💡
 
 - Add tests using `supertest` + `vitest` (or `jest`) for route validation
-- Add a GitHub Actions workflow for CI/linting (working on this today)
+- Add a GitHub Actions workflow for CI/linting (working on this today) 
 - Add pagination for `GET /notes` endpoint
 - Add search/filter functionality
 - Add user authentication and authorization
