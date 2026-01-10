@@ -23,7 +23,6 @@ export async function getNotesById(req, res) {
 		return res.status(404).json({ message: "Note not found" });
 	}
 	return res.status(200).json(note);
-
 }
 
 export async function updateNotes(req, res) {
@@ -35,7 +34,6 @@ export async function updateNotes(req, res) {
 		return res.status(404).json({ message: "Note not found" });
 	}
 	return res.status(200).json(updated);
-
 }
 
 export async function deleteNotes(req, res) {
@@ -46,7 +44,6 @@ export async function deleteNotes(req, res) {
 		return res.status(404).json({ error: "Note not found" });
 	}
 	return res.status(204).send();
-
 }
 
 export default {
