@@ -2,8 +2,29 @@ import db from "../db/db.js";
 
 const NoteRepository = {
 	// Get all notes from the database
-	async getAll() {
-		return await db("notes").select("*");
+	async getAll(page = 1, limit = 10) {
+		const offset = (page - 1) * limit;
+		const notes = await db('notes')
+			.select('*')
+			.orderBy('createdAt', 'desc')
+			.limit(limit)
+			.offset(offset);
+
+		const [{ count }] = await db("notes").count('* as count');
+		const total = Number(count);
+		const totalPages = Math.ceil(total / limit)
+
+		return {
+			notes,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages,
+				hasNextPage: page < totalPages,
+				hasPrevPage: page > 1,
+			},
+		};
 	},
 
 	// Insert a new note and return the result

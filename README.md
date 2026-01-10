@@ -88,10 +88,37 @@ curl -X POST http://localhost:3000/notes \
 
 ### List all notes
 - **GET** `/notes`
-- **Response:** `200 OK` with array of notes
+- **Query Parameters:**
+  - `page` (optional, default: `1`) - Page number
+  - `limit` (optional, default: `10`, max: `100`) - Number of notes per page
+- **Response:** `200 OK` with paginated notes and metadata
+
+**Example responses:**
 
 ```bash
+# Get first page (default: 10 notes)
 curl http://localhost:3000/notes
+
+# Get page 2 with 5 notes per page
+curl http://localhost:3000/notes?page=2&limit=5
+
+# Get all notes on page 1 (max 100)
+curl http://localhost:3000/notes?limit=100
+```
+
+**Response format:**
+```json
+{
+  "notes": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 25,
+    "totalPages": 3,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  }
+}
 ```
 
 ### Get a single note
@@ -204,7 +231,7 @@ The server defaults to port `3000` if `PORT` is not set.
 ## Next Steps 💡
 
 - Add tests using `supertest` + `vitest` (or `jest`) for route validation
-- Add a GitHub Actions workflow for CI/linting (working on this today) 
+- Add a GitHub Actions workflow for CI/linting (working on this today)
 - Add pagination for `GET /notes` endpoint
 - Add search/filter functionality
 - Add user authentication and authorization

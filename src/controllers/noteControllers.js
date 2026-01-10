@@ -8,10 +8,11 @@ export const createNotes = async (req, res) => {
 };
 
 export async function getNotes(req, res) {
+	const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+	const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
 
-	const getNote = await NoteRepository.getAll();
-	return res.status(200).json(getNote);
-
+	const results = await NoteRepository.getAll(page, limit);
+	return res.status(200).json(results);
 }
 
 export async function getNotesById(req, res) {
