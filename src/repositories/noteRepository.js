@@ -4,6 +4,7 @@ const NoteRepository = {
 	// Get all notes from the database
 	async getAll(page = 1, limit = 10) {
 		const offset = (page - 1) * limit;
+		// ill be implementing search/filter functionality
 		const notes = await db('notes')
 			.select('*')
 			.orderBy('createdAt', 'desc')
