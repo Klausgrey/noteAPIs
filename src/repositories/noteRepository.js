@@ -2,16 +2,32 @@ import db from "../db/db.js";
 
 const NoteRepository = {
 	// Get all notes from the database
-	async getAll(page = 1, limit = 10) {
+	async getAll(page = 1, limit = 10, search = null) {
 		const offset = (page - 1) * limit;
-		// ill be implementing search/filter functionality
-		const notes = await db('notes')
-			.select('*')
+
+		// Build the query
+		let query = db('notes').select('*');
+		let countQuery = db("notes");
+
+		// Apply search filter if provided
+		if (search && search.trim() !== '') {
+			const searchTerm = `%${search.trim()}%`;
+			query = query.where(function () {
+				this.where('title', 'like', searchTerm)
+					.orWhere('content', 'like', searchTerm);
+			});
+			countQuery = countQuery.where(function () {
+				this.where('title', 'like', searchTerm)
+					.orWhere('content', 'like', searchTerm);
+			});
+		}
+
+		const notes = await query
 			.orderBy('createdAt', 'desc')
 			.limit(limit)
 			.offset(offset);
 
-		const [{ count }] = await db("notes").count('* as count');
+		const [{ count }] = await countQuery.count('* as count');
 		const total = Number(count);
 		const totalPages = Math.ceil(total / limit)
 
