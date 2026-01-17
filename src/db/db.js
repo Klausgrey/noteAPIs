@@ -10,15 +10,28 @@ const db = knex({
 
 // This function creates the table if it doesn't exist
 export const initDb = async () => {
-	const hasTable = await db.schema.hasTable('notes');
-	if (!hasTable) {
+	// Create users table
+	const hasUsersTable = await db.schema.hasTable('users');
+	if (!hasUsersTable) {
+		await db.schema.createTable('users', (table) => {
+			table.increments('id').primary();
+			table.string('username').notNullable().unique();
+			table.string('password').notNullable();
+			table.timestamp('createdAt').defaultTo(db.fn.now());
+		});
+		console.log("Users table created!");
+	}
+
+	// Create notes table
+	const hasNotesTable = await db.schema.hasTable('notes');
+	if (!hasNotesTable) {
 		await db.schema.createTable('notes', (table) => {
 			table.increments('id').primary(); // Auto-incrementing ID
 			table.string('title').notNullable();
 			table.text('content');
 			table.timestamp('createdAt').defaultTo(db.fn.now());
 		});
-		console.log("Database & Notes table created!");
+		console.log("Notes table created!");
 	}
 };
 
